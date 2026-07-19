@@ -2076,13 +2076,17 @@ body {
   color: var(--gray-400);
 }
 
+.gas-pagination-bar {
+  min-height: 0;
+}
+
 .gas-pagination {
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 12px;
   padding: 12px;
-  border-top: 1px solid var(--gray-100);
+  border-bottom: 1px solid var(--gray-100);
 }
 
 .gas-page-btn {

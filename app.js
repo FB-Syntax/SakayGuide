@@ -154,7 +154,9 @@ const GW_API = sakayData.gaswatchApi;
 async function fetchGasData() {
   state.gasLoading = true;
   const listEl = $('gas-list');
+  var pagBar = $('gas-pagination-bar');
   if (listEl) listEl.innerHTML = '<div class="gas-loading"><span class="spinner"></span> Loading gas stations from GasWatch API...</div>';
+  if (pagBar) pagBar.innerHTML = '';
   try {
     const [stationsRes, brandsRes, historyRes, advisoriesRes] = await Promise.all([
       fetch(GW_API + '/stations?limit=5000'),
@@ -195,6 +197,7 @@ async function fetchGasData() {
   } catch (e) {
     console.warn('GasWatch API fetch failed:', e.message);
     if (listEl) listEl.innerHTML = '<div class="gas-error">⚠️ Could not connect to GasWatch API at localhost:3000. Make sure the server is running.</div>';
+    if (pagBar) pagBar.innerHTML = '';
     state.gasStations = [];
     state.gasBrands = [];
     state.advisories = [];
@@ -304,9 +307,11 @@ var gasPerPage = 5;
 
 function renderGasStations(stations) {
   const listEl = $('gas-list');
+  const pagBar = $('gas-pagination-bar');
   if (!listEl) return;
   if (!stations || stations.length === 0) {
     listEl.innerHTML = '<div class="gas-empty">No gas stations found. Try a different search or brand filter.</div>';
+    if (pagBar) pagBar.innerHTML = '';
     clearGasMapMarkers();
     return;
   }
@@ -341,12 +346,14 @@ function renderGasStations(stations) {
     if (gasPrice == null && dieselPrice == null) html += '<div style="font-size:12px;color:var(--gray-400)">No prices</div>';
     html += '</div></div>';
   });
-  html += '<div class="gas-pagination">';
-  html += '<button class="gas-page-btn" id="gas-prev-page"' + (gasPage <= 1 ? ' disabled' : '') + '>← Previous</button>';
-  html += '<span class="gas-page-info">Page ' + gasPage + ' of ' + totalPages + ' (' + stations.length + ' stations)</span>';
-  html += '<button class="gas-page-btn" id="gas-next-page"' + (gasPage >= totalPages ? ' disabled' : '') + '>Next →</button>';
-  html += '</div>';
   listEl.innerHTML = html;
+  if (pagBar) {
+    pagBar.innerHTML = '<div class="gas-pagination">'
+      + '<button class="gas-page-btn" id="gas-prev-page"' + (gasPage <= 1 ? ' disabled' : '') + '>← Previous</button>'
+      + '<span class="gas-page-info">Page ' + gasPage + ' of ' + totalPages + ' (' + stations.length + ' stations)</span>'
+      + '<button class="gas-page-btn" id="gas-next-page"' + (gasPage >= totalPages ? ' disabled' : '') + '>Next →</button>'
+      + '</div>';
+  }
   updateGasMapMarkers(toShow);
   var prevEl = $('gas-prev-page');
   var nextEl = $('gas-next-page');
