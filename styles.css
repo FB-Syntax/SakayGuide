@@ -896,6 +896,25 @@ body {
   .section-header { margin-bottom: 32px; }
   .map-container { height: 280px; }
   #map { height: 280px; }
+
+  .tracker-card { padding: 16px; }
+  .tracker-header { margin-bottom: 12px; }
+  .tracker-title { font-size: 14px; }
+  .tracker-route-line { font-size: 12px; margin-bottom: 12px; padding: 6px; }
+  .tracker-main { gap: 12px; margin-bottom: 12px; }
+  .tracker-vehicle { width: 40px; height: 40px; font-size: 20px; }
+  .tracker-stats { gap: 8px; flex-wrap: wrap; justify-content: center; }
+  .tracker-stat { flex: 1 1 45%; min-width: 0; }
+  .tracker-stat-value { font-size: 18px; }
+  .tracker-stat-label { font-size: 10px; }
+  .progress-container { margin-bottom: 12px; }
+  .progress-labels { font-size: 10px; }
+  .tracker-actions { gap: 8px; flex-wrap: wrap; }
+  .btn-finish { padding: 10px 16px; font-size: 13px; flex: 1; justify-content: center; }
+  .btn-cancel-ride { padding: 10px 14px; font-size: 12px; flex: 1; justify-content: center; }
+  .btn-sos-ride { padding: 10px 14px; font-size: 12px; flex: 1; justify-content: center; }
+  .tracker-map-wrap { margin-top: 8px; }
+  #tracker-map { height: 200px; }
 }
 
 /* UTILITIES */
