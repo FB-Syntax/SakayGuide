@@ -1839,62 +1839,47 @@ function detectLocation() {
   if (state.locationInProgress) return;
   state.locationInProgress = true;
   const gpsEl = $('gps-status');
-  if (gpsEl) {
-    gpsEl.textContent = '⏳ Detecting your location...';
-    gpsEl.className = 'gps-status waiting';
-  }
 
-  const finish = (ok, coords, source) => {
-    if (!state.locationInProgress) return;
-    state.locationInProgress = false;
-    if (ok) {
-      state.userLocation = coords;
-      state.gpsAvailable = true;
-      if (gpsEl) {
-        gpsEl.textContent = `📍 ${source === 'gps' ? 'Location detected (GPS)' : 'Location detected (IP)'}`;
-        gpsEl.className = 'gps-status ok';
-      }
-      if (state.plannerMarker) {
-        state.plannerMarker.setLatLng(coords);
-        state.plannerMap.setView(coords, 15);
-      }
-      state.plannerCoords = coords;
-      populateStartDropdown('user');
-      autoPlaceTrafficPin();
-    } else {
-      state.gpsAvailable = false;
-      if (gpsEl) {
-        gpsEl.textContent = '📍 Using Mapúa as default location';
-        gpsEl.className = 'gps-status waiting';
-      }
-      populateStartDropdown('user');
+  const setStatus = (txt, cls) => {
+    if (gpsEl) { gpsEl.textContent = txt; gpsEl.className = 'gps-status ' + cls; }
+  };
+
+  const done = (coords, source) => {
+    state.userLocation = coords;
+    state.plannerCoords = coords;
+    state.gpsAvailable = true;
+    setStatus('📍 ' + (source === 'gps' ? 'Location detected (GPS)' : 'Location detected (IP)'), 'ok');
+    if (state.plannerMarker) {
+      state.plannerMarker.setLatLng(coords);
+      state.plannerMap.setView(coords, 15);
     }
+    populateStartDropdown('user');
+    autoPlaceTrafficPin();
     updateRoutePlanner();
+    state.locationInProgress = false;
   };
 
-  const timeout = setTimeout(function() {
-    finish(false);
-  }, 12000);
-  var settled = false;
-  const once = function(ok, coords, source) {
-    if (settled) return;
-    settled = true;
-    clearTimeout(timeout);
+  const fail = () => {
+    state.gpsAvailable = false;
+    setStatus('📍 Using Mapúa as default location', 'waiting');
+    populateStartDropdown('user');
+    updateRoutePlanner();
     state.locationInProgress = false;
-    finish(ok, coords, source);
   };
+
+  setStatus('⏳ Detecting your location...', 'waiting');
 
   if ('geolocation' in navigator) {
     navigator.geolocation.getCurrentPosition(
-      function(pos) { once(true, [pos.coords.latitude, pos.coords.longitude], 'gps'); },
-      function() {},
-      { enableHighAccuracy: true, timeout: 6000, maximumAge: 0 }
+      function(pos) { done([pos.coords.latitude, pos.coords.longitude], 'gps'); },
+      function() {
+        ipApiFetch().then(function(c) { done(c, 'ip'); }).catch(function() { fail(); });
+      },
+      { enableHighAccuracy: true, timeout: 8000, maximumAge: 60000 }
     );
+  } else {
+    ipApiFetch().then(function(c) { done(c, 'ip'); }).catch(function() { fail(); });
   }
-
-  setTimeout(function() {
-    ipApiFetch().then(function(c) { once(true, c, 'ip'); }).catch(function() {});
-  }, 2000);
 }
 
 function autoPlaceTrafficPin() {
