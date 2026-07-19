@@ -160,7 +160,7 @@ const sakayData = {
       distance: 1.2, mode: 'jeepney-traditional', estTime: 4
     }
   ],
-  gaswatchApi: 'http://localhost:3000/api',
+  gaswatchApi: '/api',
   version: '1.1.0',
   lastFareUpdate: 'March 19, 2026',
   fareSource: 'LTFRB Order 2026 (TopGear PH)',
