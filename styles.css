@@ -878,9 +878,9 @@ body {
   .hamburger { display: block; }
   .nav-open .nav { display: flex; flex-direction: column; position: absolute; top: 72px; left: 0; right: 0; background: var(--blue-800); padding: 16px; box-shadow: var(--shadow-lg); z-index: 999; }
   .calc-output-price { font-size: 32px; }
-  .planner-grid { grid-template-columns: 1fr; }
-  .planner-map-wrap { min-height: 200px; }
-  #planner-map { height: 200px; }
+  .planner-grid { display: flex; flex-direction: column; }
+  .planner-map-wrap { order: -1; min-height: 300px; }
+  #planner-map { height: 300px; }
   .tracker-main { flex-direction: column; text-align: center; }
   .tracker-stats { justify-content: center; }
   .summary-stats { gap: 24px; }
@@ -896,6 +896,8 @@ body {
   .section-header { margin-bottom: 32px; }
   .map-container { height: 280px; }
   #map { height: 280px; }
+  .planner-map-wrap { min-height: 260px; }
+  #planner-map { height: 260px; }
 
   .tracker-card { padding: 16px; }
   .tracker-header { margin-bottom: 12px; }
@@ -1105,6 +1107,68 @@ body {
   padding: 6px 10px;
   background: var(--gray-50);
   border-top: 1px solid var(--gray-200);
+}
+
+.planner-dest-search-wrap {
+  position: relative;
+}
+
+#planner-dest-search {
+  width: 100%;
+  padding: 12px 14px;
+  border: 2px solid var(--gray-200);
+  border-radius: 10px;
+  font-size: 15px;
+  color: var(--gray-800);
+  background: var(--white);
+  outline: none;
+  transition: border-color 0.2s;
+  box-sizing: border-box;
+}
+
+#planner-dest-search:focus { border-color: var(--blue-500); }
+
+.planner-dest-suggestions {
+  display: none;
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  z-index: 100;
+  background: var(--white);
+  border: 1px solid var(--gray-200);
+  border-radius: 0 0 10px 10px;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.12);
+  max-height: 240px;
+  overflow-y: auto;
+}
+
+.planner-dest-item {
+  padding: 10px 14px;
+  cursor: pointer;
+  border-bottom: 1px solid var(--gray-100);
+  transition: background 0.15s;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--gray-800);
+}
+
+.planner-dest-item:last-child { border-bottom: none; }
+.planner-dest-item:hover { background: var(--blue-50); }
+
+.planner-dest-item-addr {
+  display: block;
+  font-size: 12px;
+  font-weight: 400;
+  color: var(--gray-500);
+  margin-top: 2px;
+}
+
+.planner-dest-noresult {
+  padding: 16px 14px;
+  text-align: center;
+  font-size: 13px;
+  color: var(--gray-400);
 }
 
 .btn-start-ride {

@@ -1587,6 +1587,48 @@ function initRoutePlanner() {
   populateStartDropdown('user');
   populateEndDropdown();
   detectLocation();
+
+  /* DESTINATION SEARCH */
+  var destSearch = $('planner-dest-search');
+  var destSugg = $('planner-dest-suggestions');
+  if (destSearch && destSugg) {
+    destSearch.addEventListener('input', function() {
+      var q = this.value.trim().toLowerCase();
+      if (!q) { destSugg.innerHTML = ''; destSugg.style.display = 'none'; return; }
+      var matches = sakayData.terminals.filter(function(t) {
+        return t.name.toLowerCase().includes(q) || (t.address && t.address.toLowerCase().includes(q));
+      });
+      if (matches.length === 0) {
+        destSugg.innerHTML = '<div class="planner-dest-noresult">No matching terminals</div>';
+        destSugg.style.display = 'block';
+        return;
+      }
+      var html = '';
+      matches.forEach(function(t) {
+        html += '<div class="planner-dest-item" data-id="' + t.id + '">' + escHtml(t.name) + '<span class="planner-dest-item-addr">' + escHtml(t.address || '') + '</span></div>';
+      });
+      destSugg.innerHTML = html;
+      destSugg.style.display = 'block';
+    });
+    destSearch.addEventListener('blur', function() {
+      setTimeout(function() { destSugg.style.display = 'none'; }, 200);
+    });
+    destSearch.addEventListener('focus', function() {
+      if (this.value.trim()) this.dispatchEvent(new Event('input'));
+    });
+    destSugg.addEventListener('click', function(e) {
+      var item = e.target.closest('.planner-dest-item');
+      if (!item) return;
+      var id = item.dataset.id;
+      var term = sakayData.terminals.find(function(t) { return t.id === id; });
+      if (!term) return;
+      destSearch.value = term.name;
+      destSugg.style.display = 'none';
+      var sel = $('planner-end');
+      sel.value = id;
+      onEndChanged();
+    });
+  }
 }
 
 function initPlannerMap() {
