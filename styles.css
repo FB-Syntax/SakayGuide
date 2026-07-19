@@ -2076,17 +2076,35 @@ body {
   color: var(--gray-400);
 }
 
-.gas-show-more {
-  text-align: center;
+.gas-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
   padding: 12px;
+  border-top: 1px solid var(--gray-100);
+}
+
+.gas-page-btn {
+  padding: 8px 16px;
+  border: 1px solid var(--blue-300);
+  background: var(--white);
+  color: var(--blue-600);
+  border-radius: 8px;
   font-size: 13px;
   font-weight: 600;
-  color: var(--blue-600);
   cursor: pointer;
-  border-top: 1px solid var(--gray-100);
-  transition: background 0.2s;
+  transition: all 0.2s;
 }
-.gas-show-more:hover { background: var(--blue-50); }
+
+.gas-page-btn:hover:not(:disabled) { background: var(--blue-50); border-color: var(--blue-500); }
+.gas-page-btn:disabled { opacity: 0.4; cursor: default; }
+
+.gas-page-info {
+  font-size: 13px;
+  color: var(--gray-500);
+  white-space: nowrap;
+}
 
 .advisories-link { color: var(--blue-600); cursor: pointer; text-decoration: none; }
 .advisories-link:hover { text-decoration: underline; }

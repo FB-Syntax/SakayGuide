@@ -280,6 +280,7 @@ function sortAndRenderStations() {
 }
 
 function filterGasStations() {
+  gasPage = 1;
   var query = $('gas-search');
   var brand = $('gas-brand-select');
   var q = query ? query.value.trim().toLowerCase() : '';
@@ -288,7 +289,7 @@ function filterGasStations() {
   state.gasBrands.forEach(function(bb) { brandNames[(bb.id || '').toLowerCase().trim()] = (bb.name || '').toLowerCase().trim(); });
   b = b.toLowerCase().trim();
   state.gasFilteredStations = state.gasStations.filter(function(s) {
-    if (q && !(s.name || '').toLowerCase().includes(q) && !(s.brand || '').toLowerCase().includes(q) && !(s.area || '').toLowerCase().includes(q)) return false;
+    if (q && !(s.name || '').toLowerCase().includes(q) && !(s.brand || '').toLowerCase().includes(q) && !(s.area || '').toLowerCase().includes(q) && !(s.city || '').toLowerCase().includes(q) && !(s.address || '').toLowerCase().includes(q)) return false;
     if (b) {
       var sb = (s.brand || '').toLowerCase().trim();
       if (sb !== b && sb !== brandNames[b]) return false;
@@ -298,7 +299,8 @@ function filterGasStations() {
   sortAndRenderStations();
 }
 
-var gasShowCount = 5;
+var gasPage = 1;
+var gasPerPage = 5;
 
 function renderGasStations(stations) {
   const listEl = $('gas-list');
@@ -308,8 +310,12 @@ function renderGasStations(stations) {
     clearGasMapMarkers();
     return;
   }
+  var totalPages = Math.ceil(stations.length / gasPerPage);
+  if (gasPage > totalPages) gasPage = totalPages;
+  var start = (gasPage - 1) * gasPerPage;
+  var end = Math.min(start + gasPerPage, stations.length);
+  var toShow = stations.slice(start, end);
   var html = '';
-  var toShow = stations.slice(0, gasShowCount);
   toShow.forEach(function(s) {
     var dist = state.gasUserCoords && s.lat != null && s.lng != null
       ? calcHaversineKm(state.gasUserCoords[0], state.gasUserCoords[1], s.lat, s.lng)
@@ -335,18 +341,23 @@ function renderGasStations(stations) {
     if (gasPrice == null && dieselPrice == null) html += '<div style="font-size:12px;color:var(--gray-400)">No prices</div>';
     html += '</div></div>';
   });
-  if (stations.length > gasShowCount) {
-    html += '<div class="gas-show-more" id="gas-show-more">Show ' + (stations.length - gasShowCount) + ' more stations</div>';
-  } else {
-    html += '<div style="text-align:center;font-size:12px;color:var(--gray-400);padding:8px">' + stations.length + ' station' + (stations.length !== 1 ? 's' : '') + '</div>';
-  }
+  html += '<div class="gas-pagination">';
+  html += '<button class="gas-page-btn" id="gas-prev-page"' + (gasPage <= 1 ? ' disabled' : '') + '>← Previous</button>';
+  html += '<span class="gas-page-info">Page ' + gasPage + ' of ' + totalPages + ' (' + stations.length + ' stations)</span>';
+  html += '<button class="gas-page-btn" id="gas-next-page"' + (gasPage >= totalPages ? ' disabled' : '') + '>Next →</button>';
+  html += '</div>';
   listEl.innerHTML = html;
   updateGasMapMarkers(toShow);
-  var showMoreEl = $('gas-show-more');
-  if (showMoreEl) {
-    showMoreEl.addEventListener('click', function() {
-      gasShowCount += 10;
-      renderGasStations(stations);
+  var prevEl = $('gas-prev-page');
+  var nextEl = $('gas-next-page');
+  if (prevEl) {
+    prevEl.addEventListener('click', function() {
+      if (gasPage > 1) { gasPage--; renderGasStations(stations); }
+    });
+  }
+  if (nextEl) {
+    nextEl.addEventListener('click', function() {
+      if (gasPage < totalPages) { gasPage++; renderGasStations(stations); }
     });
   }
   if (!listEl._gasListBound) {
@@ -358,6 +369,8 @@ function renderGasStations(stations) {
       var lng = parseFloat(card.dataset.lng);
       if (isNaN(lat) || isNaN(lng) || !state.gasMap) return;
       state.gasMap.setView([lat, lng], 16, { animate: true });
+      var mapWrap = document.querySelector('.gas-map-container');
+      if (mapWrap) mapWrap.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
       state.gasMarkers.forEach(function(m) {
         var mPos = m.getLatLng();
         if (Math.abs(mPos.lat - lat) < 0.001 && Math.abs(mPos.lng - lng) < 0.001) {
