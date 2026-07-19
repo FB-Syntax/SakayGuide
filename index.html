@@ -264,6 +264,12 @@
       </div>
       <div class="calculator-wrapper" id="planner-section">
         <div class="calculator-body">
+          <div class="planner-preview" id="planner-preview">
+            <div class="planner-preview-label">Fare Preview</div>
+            <div class="planner-preview-route" id="planner-route-name">Select start &amp; destination</div>
+            <div class="planner-preview-detail" id="planner-route-detail">—</div>
+            <div class="planner-preview-fare" id="planner-fare">₱—</div>
+          </div>
           <div class="planner-grid">
             <div class="planner-form">
               <div class="planner-field">
@@ -281,7 +287,7 @@
               <div class="planner-field">
                 <label>🔍 Search Destination</label>
                 <div class="planner-dest-search-wrap">
-                  <input type="text" id="planner-dest-search" placeholder="Type terminal name..." autocomplete="off">
+                  <input type="text" id="planner-dest-search" placeholder="Search any place..." autocomplete="off">
                   <div class="planner-dest-suggestions" id="planner-dest-suggestions"></div>
                 </div>
               </div>
@@ -304,12 +310,6 @@
               <div id="planner-map"></div>
               <div class="planner-map-hint" id="planner-map-hint">📍 Click map to place start, or drag the pin</div>
             </div>
-          </div>
-          <div class="planner-preview" id="planner-preview">
-            <div class="planner-preview-label">Fare Preview</div>
-            <div class="planner-preview-route" id="planner-route-name">Select start &amp; destination</div>
-            <div class="planner-preview-detail" id="planner-route-detail">—</div>
-            <div class="planner-preview-fare" id="planner-fare">₱—</div>
           </div>
         </div>
       </div>

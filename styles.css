@@ -859,6 +859,12 @@ body {
   .footer-grid { grid-template-columns: 1fr 1fr; }
 }
 
+@media (min-width: 769px) {
+  #planner-section .calculator-body { display: flex; flex-direction: column; }
+  #planner-section .planner-grid { order: 1; }
+  #planner-section .planner-preview { order: 2; }
+}
+
 @media (max-width: 768px) {
   .hero { padding: 60px 0 80px; }
   .hero h1 { font-size: 32px; }
@@ -1170,6 +1176,19 @@ body {
   font-size: 13px;
   color: var(--gray-400);
 }
+
+.planner-dest-sep {
+  padding: 6px 14px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--gray-400);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  background: var(--gray-50);
+  border-bottom: 1px solid var(--gray-100);
+}
+
+.planner-dest-item.planner-dest-geo { border-left: 3px solid var(--blue-300); }
 
 .btn-start-ride {
   display: inline-flex;

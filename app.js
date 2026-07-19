@@ -1087,6 +1087,13 @@ function reverseGeocode(lat, lng) {
     .catch(function() { return null; });
 }
 
+function forwardGeocode(query) {
+  var url = 'https://nominatim.openstreetmap.org/search?format=json&q=' + encodeURIComponent(query) + '&limit=5';
+  return fetch(url, { headers: { 'Accept-Language': 'en' } })
+    .then(function(r) { return r.ok ? r.json() : []; })
+    .catch(function() { return []; });
+}
+
 function setStartPinFromCoords(latlng, accuracy) {
   const t = state.traffic;
   if (t.watchId != null) { navigator.geolocation.clearWatch(t.watchId); t.watchId = null; }
@@ -1592,23 +1599,34 @@ function initRoutePlanner() {
   var destSearch = $('planner-dest-search');
   var destSugg = $('planner-dest-suggestions');
   if (destSearch && destSugg) {
+    var searchTimer = null;
     destSearch.addEventListener('input', function() {
-      var q = this.value.trim().toLowerCase();
+      var q = this.value.trim();
       if (!q) { destSugg.innerHTML = ''; destSugg.style.display = 'none'; return; }
-      var matches = sakayData.terminals.filter(function(t) {
-        return t.name.toLowerCase().includes(q) || (t.address && t.address.toLowerCase().includes(q));
-      });
-      if (matches.length === 0) {
-        destSugg.innerHTML = '<div class="planner-dest-noresult">No matching terminals</div>';
-        destSugg.style.display = 'block';
-        return;
-      }
-      var html = '';
-      matches.forEach(function(t) {
-        html += '<div class="planner-dest-item" data-id="' + t.id + '">' + escHtml(t.name) + '<span class="planner-dest-item-addr">' + escHtml(t.address || '') + '</span></div>';
-      });
-      destSugg.innerHTML = html;
-      destSugg.style.display = 'block';
+      if (searchTimer) clearTimeout(searchTimer);
+      searchTimer = setTimeout(function() {
+        var ql = q.toLowerCase();
+        var termMatches = sakayData.terminals.filter(function(t) {
+          return t.name.toLowerCase().includes(ql) || (t.address && t.address.toLowerCase().includes(ql));
+        });
+        forwardGeocode(q).then(function(geoResults) {
+          var html = '';
+          termMatches.forEach(function(t) {
+            html += '<div class="planner-dest-item" data-id="' + t.id + '">' + escHtml(t.name) + '<span class="planner-dest-item-addr">' + escHtml(t.address || '') + '</span></div>';
+          });
+          var validGeo = geoResults.filter(function(r) { return r.lat && r.lon; });
+          if (termMatches.length > 0 && validGeo.length > 0) {
+            html += '<div class="planner-dest-sep">─ Places ─</div>';
+          }
+          validGeo.forEach(function(r) {
+            var label = r.display_name ? r.display_name.split(',')[0] : r.name;
+            html += '<div class="planner-dest-item planner-dest-geo" data-lat="' + r.lat + '" data-lng="' + r.lon + '">' + escHtml(label) + '<span class="planner-dest-item-addr">' + escHtml(r.display_name || '') + '</span></div>';
+          });
+          if (!html) html = '<div class="planner-dest-noresult">No results found</div>';
+          destSugg.innerHTML = html;
+          destSugg.style.display = 'block';
+        });
+      }, 300);
     });
     destSearch.addEventListener('blur', function() {
       setTimeout(function() { destSugg.style.display = 'none'; }, 200);
@@ -1620,13 +1638,29 @@ function initRoutePlanner() {
       var item = e.target.closest('.planner-dest-item');
       if (!item) return;
       var id = item.dataset.id;
-      var term = sakayData.terminals.find(function(t) { return t.id === id; });
-      if (!term) return;
-      destSearch.value = term.name;
-      destSugg.style.display = 'none';
-      var sel = $('planner-end');
-      sel.value = id;
-      onEndChanged();
+      if (id) {
+        var term = sakayData.terminals.find(function(t) { return t.id === id; });
+        if (term) {
+          destSearch.value = term.name;
+          destSugg.style.display = 'none';
+          $('planner-end').value = id;
+          onEndChanged();
+          return;
+        }
+      }
+      var lat = parseFloat(item.dataset.lat);
+      var lng = parseFloat(item.dataset.lng);
+      if (!isNaN(lat) && !isNaN(lng)) {
+        destSearch.value = item.childNodes[0].textContent.trim();
+        destSugg.style.display = 'none';
+        state.plannerDestCoords = [lat, lng];
+        state.plannerDestMarker.setLatLng([lat, lng]);
+        if (!state.plannerDestMarker._map) state.plannerDestMarker.addTo(state.plannerMap);
+        state.plannerMap.setView([lat, lng], 16);
+        $('planner-end').value = 'custom';
+        setPlannerPinMode(null);
+        updateRoutePlanner();
+      }
     });
   }
 }
