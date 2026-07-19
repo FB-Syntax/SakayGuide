@@ -270,9 +270,43 @@ function autoDetectAndShow() {
   }
 }
 
+function computeRelevance(s, tokens) {
+  var score = 0;
+  var name = (s.name || '').toLowerCase();
+  var area = (s.area || '').toLowerCase();
+  var brand = (s.brand || '').toLowerCase();
+  var city = (s.city || '').toLowerCase();
+  var address = (s.address || '').toLowerCase();
+  for (var i = 0; i < tokens.length; i++) {
+    var t = tokens[i];
+    if (area.startsWith(t)) score += 100;
+    else if (name.startsWith(t)) score += 80;
+    else if (area.includes(t)) score += 50;
+    else if (name.includes(t)) score += 30;
+    else if (brand.includes(t)) score += 10;
+    else if (city.includes(t) || address.includes(t)) score += 5;
+  }
+  return score;
+}
+
 function sortAndRenderStations() {
   var stations = state.gasFilteredStations;
-  if (state.gasUserCoords && stations.length > 0) {
+  var searchEl = $('gas-search');
+  var q = searchEl ? searchEl.value.trim() : '';
+  var tokens = q.toLowerCase().split(/\s+/).filter(Boolean);
+  if (tokens.length > 0) {
+    stations = stations.slice().sort(function(a, b) {
+      var sa = computeRelevance(a, tokens);
+      var sb = computeRelevance(b, tokens);
+      if (sa !== sb) return sb - sa;
+      if (state.gasUserCoords) {
+        var dA = calcHaversineKm(state.gasUserCoords[0], state.gasUserCoords[1], a.lat || 0, a.lng || 0);
+        var dB = calcHaversineKm(state.gasUserCoords[0], state.gasUserCoords[1], b.lat || 0, b.lng || 0);
+        return dA - dB;
+      }
+      return 0;
+    });
+  } else if (state.gasUserCoords && stations.length > 0) {
     stations = stations.slice().sort(function(a, b) {
       var dA = calcHaversineKm(state.gasUserCoords[0], state.gasUserCoords[1], a.lat || 0, a.lng || 0);
       var dB = calcHaversineKm(state.gasUserCoords[0], state.gasUserCoords[1], b.lat || 0, b.lng || 0);
@@ -286,16 +320,32 @@ function filterGasStations() {
   gasPage = 1;
   var query = $('gas-search');
   var brand = $('gas-brand-select');
-  var q = query ? query.value.trim().toLowerCase() : '';
+  var q = query ? query.value.trim() : '';
   var b = brand ? brand.value : '';
   var brandNames = {};
   state.gasBrands.forEach(function(bb) { brandNames[(bb.id || '').toLowerCase().trim()] = (bb.name || '').toLowerCase().trim(); });
   b = b.toLowerCase().trim();
+  var tokens = q.toLowerCase().split(/\s+/).filter(Boolean);
   state.gasFilteredStations = state.gasStations.filter(function(s) {
-    if (q && !(s.name || '').toLowerCase().includes(q) && !(s.brand || '').toLowerCase().includes(q) && !(s.area || '').toLowerCase().includes(q) && !(s.city || '').toLowerCase().includes(q) && !(s.address || '').toLowerCase().includes(q)) return false;
     if (b) {
       var sb = (s.brand || '').toLowerCase().trim();
       if (sb !== b && sb !== brandNames[b]) return false;
+    }
+    if (tokens.length > 0) {
+      var name = (s.name || '').toLowerCase();
+      var area = (s.area || '').toLowerCase();
+      var sbrand = (s.brand || '').toLowerCase();
+      var city = (s.city || '').toLowerCase();
+      var address = (s.address || '').toLowerCase();
+      var matched = false;
+      for (var i = 0; i < tokens.length; i++) {
+        var t = tokens[i];
+        if (name.includes(t) || area.includes(t) || sbrand.includes(t) || city.includes(t) || address.includes(t)) {
+          matched = true;
+          break;
+        }
+      }
+      if (!matched) return false;
     }
     return true;
   });
