@@ -1117,52 +1117,26 @@ function setStartPinFromCoords(latlng, accuracy) {
 
 function locateTrafficStart() {
   const t = state.traffic;
-  if (!('geolocation' in navigator)) {
-    ipApiFetch().then(function(coords) {
-      if (!coords) { showToast('GPS not available. Could not locate via IP either.'); return; }
-      showToast('📍 Using approximate location (IP-based)');
-      setStartPinFromCoords(L.latLng(coords[0], coords[1]), null);
-    });
-    return;
+  if (!t || !t.map) return;
+  showToast('📍 Locating you...');
+  const onCoords = function(coords, source) {
+    showToast('📍 ' + (source === 'gps' ? 'Using GPS location' : 'Using approximate location (IP-based)'));
+    setStartPinFromCoords(L.latLng(coords[0], coords[1]), null);
+  };
+  const onError = function() {
+    showToast('⚠️ Could not determine your location.');
+  };
+  if ('geolocation' in navigator) {
+    navigator.geolocation.getCurrentPosition(
+      function(pos) { onCoords([pos.coords.latitude, pos.coords.longitude], 'gps'); },
+      function() {
+        ipApiFetch().then(function(c) { onCoords(c, 'ip'); }).catch(function() { onError(); });
+      },
+      { enableHighAccuracy: true, timeout: 8000, maximumAge: 60000 }
+    );
+  } else {
+    ipApiFetch().then(function(c) { onCoords(c, 'ip'); }).catch(function() { onError(); });
   }
-  showToast('📍 Locating you (improving accuracy)...');
-  var bestPos = null;
-  t.watchId = navigator.geolocation.watchPosition(
-    function(pos) {
-      var acc = pos.coords.accuracy || 999;
-      if (!bestPos || acc < bestPos.coords.accuracy) {
-        bestPos = pos;
-        showToast('📍 Accuracy: ±' + acc.toFixed(0) + 'm');
-        if (acc < 30) {
-          setStartPinFromCoords(L.latLng(pos.coords.latitude, pos.coords.longitude), pos.coords.accuracy);
-        }
-      }
-    },
-    function() {
-      if (t.watchId != null) { navigator.geolocation.clearWatch(t.watchId); t.watchId = null; }
-      ipApiFetch().then(function(coords) {
-        if (!coords) { showToast('⚠️ Could not get location. Tap Pin Start to place manually.'); return; }
-        showToast('📍 Using approximate location (IP-based)');
-        setStartPinFromCoords(L.latLng(coords[0], coords[1]), null);
-      });
-    },
-    { enableHighAccuracy: true, timeout: 8000, maximumAge: 0 }
-  );
-  setTimeout(function() {
-    if (t.watchId != null) {
-      navigator.geolocation.clearWatch(t.watchId);
-      t.watchId = null;
-    }
-    if (bestPos) {
-      setStartPinFromCoords(L.latLng(bestPos.coords.latitude, bestPos.coords.longitude), bestPos.coords.accuracy);
-    } else {
-      ipApiFetch().then(function(coords) {
-        if (!coords) { showToast('⚠️ GPS timed out. Tap Pin Start to place manually.'); return; }
-        showToast('📍 Using approximate location (IP-based)');
-        setStartPinFromCoords(L.latLng(coords[0], coords[1]), null);
-      });
-    }
-  }, 8000);
 }
 
 function clearTrafficAll() {
@@ -2335,6 +2309,9 @@ function bindEvents() {
 
   const trafficClear = $('traffic-clear');
   if (trafficClear) trafficClear.addEventListener('click', clearTrafficAll);
+
+  const trafficLocate = $('traffic-locate');
+  if (trafficLocate) trafficLocate.addEventListener('click', locateTrafficStart);
 
   const toggleFlow = $('toggle-traffic-flow');
   if (toggleFlow) {
