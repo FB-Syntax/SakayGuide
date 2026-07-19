@@ -1,0 +1,633 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SakayGuide — Real-Time PH Transport Fares & Routes</title>
+  <meta name="description" content="Live jeepney and tricycle fare updates, terminal locations, and gas prices for Philippine commuters.">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🚌</text></svg>">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+  <!-- TOAST -->
+  <div id="toast" class="toast"></div>
+
+  <!-- HEADER -->
+  <header class="header">
+    <div class="container header-inner">
+      <a href="#" class="logo">
+        <div class="logo-icon">🚌</div>
+        <span class="logo-text">Sakay<span>Guide</span></span>
+      </a>
+      <nav class="nav">
+        <a href="#dashboard">Fares</a>
+        <a href="#gas-section">Gas</a>
+        <a href="#calculator">Calculator</a>
+        <a href="#route-planner">Plan Ride</a>
+        <a href="#map-section">Map</a>
+        <a href="#traffic-section">Traffic</a>
+        <a href="#saved-section">Saved</a>
+        <a href="#roadmap">Roadmap</a>
+      </nav>
+      <button id="sos-btn" class="sos-btn" title="Emergency - Call 911">
+        <span class="sos-icon">🆘</span>
+        <span class="sos-text">SOS</span>
+      </button>
+      <button id="notif-btn" class="notif-btn" title="Enable notifications">🔕</button>
+      <button id="hamburger" class="hamburger">☰</button>
+    </div>
+  </header>
+
+  <!-- HERO -->
+  <section class="hero">
+    <div class="container hero-content">
+      <div class="hero-badge">🇵🇭 Real-Time Transport Info for PH Commuters</div>
+      <h1>Your <span>sakay</span> companion,<br>from terminal to destination.</h1>
+      <p>Live jeepney &amp; tricycle fares, terminal locations, and fuel prices — designed for daily commuters in Philippine municipalities. No more overcharging. No more guessing.</p>
+      <div class="hero-stats">
+        <div class="hero-stat">
+          <span class="hero-stat-value" id="hero-fares">3</span>
+          <span class="hero-stat-label">Transport Modes</span>
+        </div>
+        <div class="hero-stat">
+          <span class="hero-stat-value" id="hero-terminals">7</span>
+          <span class="hero-stat-label">Terminals &amp; Landmarks</span>
+        </div>
+        <!-- <div class="hero-stat">
+          <span class="hero-stat-value" id="hero-routes">0</span>
+          <span class="hero-stat-label">Sample Routes</span>
+        </div> -->
+        <div class="hero-stat">
+          <span class="hero-stat-value" id="hero-gas-stations">0</span>
+          <span class="hero-stat-label">Gas Stations</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- DASHBOARD -->
+  <section class="section" id="dashboard">
+    <div class="container">
+      <div class="section-header">
+        <div class="section-label">📊 Live Dashboard</div>
+        <h2>Fares &amp; Fuel <span class="highlight">at a Glance</span></h2>
+        <p class="section-subtitle">LTFRB fare rates + live nationwide fuel averages from GasWatchPH across all brands.</p>
+      </div>
+      <div class="dashboard-grid">
+        <!-- Jeepney Card -->
+        <div class="card animate-in" id="jeepney-card">
+          <div class="card-header">
+            <div class="card-icon blue">🚌</div>
+            <div>
+              <div class="card-title">Jeepney Fare</div>
+            </div>
+          </div>
+          <div class="card-value">—</div>
+          <div class="card-sub">Loading...</div>
+          <div class="source-badge">
+            📄 <a href="https://www.topgear.com.ph/news/motoring-news/ltfrb-approves-fare-adjustments-puvs-a2578-20260317" target="_blank">LTFRB Order (TopGear PH)</a> · Mar 2026
+          </div>
+        </div>
+
+        <!-- Tricycle Card -->
+        <div class="card animate-in" id="tricycle-card">
+          <div class="card-header">
+            <div class="card-icon amber">🛺</div>
+            <div>
+              <div class="card-title">Tricycle Fare</div>
+            </div>
+          </div>
+          <div class="card-value">—</div>
+          <div class="card-sub">Loading...</div>
+          <div class="source-badge">
+            📄 <a href="https://mb.com.ph/2023/11/6/manila-lgu-releases-new-fare-matrix-for-tri-wheels" target="_blank">Manila LGU Ord. No. 8979 (MB)</a> · Nov 2023
+          </div>
+          <div class="card-input-group">
+            <label>Distance (km)</label>
+            <input type="number" class="card-input" value="1" min="0.5" max="20" step="0.5">
+            <div class="quick-btns">
+              <button class="quick-btn" data-km="1">1 km</button>
+              <button class="quick-btn" data-km="2">2 km</button>
+              <button class="quick-btn" data-km="3">3 km</button>
+              <button class="quick-btn" data-km="5">5 km</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- PH Fuel Price Card -->
+        <div class="card animate-in" id="ph-fuel-card">
+          <div class="card-header">
+            <div class="card-icon green">⛽</div>
+            <div>
+              <div class="card-title">PH Fuel Price</div>
+            </div>
+          </div>
+          <div class="card-fuel-grid">
+            <div class="card-fuel-item">
+              <div class="card-fuel-label">⛽ Gasoline</div>
+              <div class="card-fuel-value" id="phf-gas">—</div>
+              <div class="card-fuel-change" id="phf-gas-change"></div>
+            </div>
+            <div class="card-fuel-divider"></div>
+            <div class="card-fuel-item">
+              <div class="card-fuel-label">🛢️ Diesel</div>
+              <div class="card-fuel-value" id="phf-diesel">—</div>
+              <div class="card-fuel-change" id="phf-diesel-change"></div>
+            </div>
+          </div>
+          <div class="card-sub" id="phf-sub">Loading... · <a class="advisories-link" id="advisories-btn">📢 Advisories</a></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- GAS STATIONS -->
+  <section class="section section-alt" id="gas-section">
+    <div class="container">
+      <div class="section-header">
+        <div class="section-label">⛽ Gas Station Finder</div>
+        <h2>Find <span class="highlight">Gas Stations</span> Near You</h2>
+        <p class="section-subtitle">Live gas prices from GasWatchPH — search by name, brand, or area. Detecting your location for nearby results.</p>
+      </div>
+      <div class="gas-wrapper" id="gas-wrapper">
+        <div class="gas-toolbar">
+          <div class="gas-search-group">
+            <input type="text" class="gas-search" id="gas-search" placeholder="🔍 Search station, brand, or area...">
+            <select class="gas-brand-select" id="gas-brand-select">
+              <option value="">All Brands</option>
+            </select>
+          </div>
+          <button class="btn-locate" id="gas-locate">📍 Near Me</button>
+        </div>
+        <div class="gas-map-container">
+          <div id="gas-map"></div>
+        </div>
+        <div class="gas-info" id="gas-info">
+          <span id="gas-info-text">📍 Detecting your location for nearby stations...</span>
+        </div>
+        <div class="gas-list" id="gas-list">
+          <div class="gas-loading"><span class="spinner"></span> Loading gas stations from GasWatch API...</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- CALCULATOR -->
+  <section class="section section-alt" id="calculator">
+    <div class="container">
+      <div class="section-header">
+        <div class="section-label">🧮 Fare Calculator</div>
+        <h2>Know Your <span class="highlight">Exact Fare</span></h2>
+        <p class="section-subtitle">Enter your distance and see the breakdown for jeepney, modern jeepney, or tricycle.</p>
+      </div>
+      <div class="calculator-wrapper">
+        <div class="calculator-tabs">
+          <button class="calc-tab active" data-mode="jeepney-traditional">🚌 Traditional Jeepney</button>
+          <button class="calc-tab" data-mode="jeepney-modern">🚍 Modern Jeepney</button>
+          <button class="calc-tab" data-mode="tricycle">🛺 Tricycle</button>
+        </div>
+        <div class="calculator-body">
+          <div class="calc-grid">
+            <div class="calc-inputs">
+              <label for="calc-distance">Distance (kilometers)</label>
+              <input type="number" class="calc-input" id="calc-distance" value="2" min="0.5" max="30" step="0.5">
+              <input type="range" class="calc-range" id="calc-range-slider" min="0.5" max="20" step="0.5" value="2">
+              <div style="display:flex;justify-content:space-between;font-size:12px;color:var(--gray-400);margin-top:4px">
+                <span>0.5 km</span>
+                <span id="calc-dist-display">2 km</span>
+                <span>20 km</span>
+              </div>
+              <div class="calc-compare" id="calc-compare"></div>
+            </div>
+            <div class="calc-output">
+              <div class="calc-output-header">Estimated Fare</div>
+              <div class="calc-output-price" id="calc-output-price">₱16.00</div>
+              <div class="calc-breakdown" id="calc-breakdown"></div>
+            </div>
+          </div>
+          <div class="mt-24">
+            <h4 style="font-size:14px;font-weight:700;color:var(--gray-800);margin-bottom:8px">Fare Matrix (₱)</h4>
+            <div class="fare-matrix-wrapper">
+              <table class="fare-matrix">
+                <thead>
+                  <tr>
+                    <th>Distance</th>
+                    <th>Trad. Jeepney</th>
+                    <th>Modern Jeepney</th>
+                    <th>Tricycle</th>
+                  </tr>
+                </thead>
+                <tbody id="matrix-body"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- MAP -->
+  <section class="section" id="map-section">
+    <div class="container">
+      <div class="section-header">
+        <div class="section-label">🗺️ Route Map</div>
+        <h2>Explore <span class="highlight">Intramuros</span> Terminals</h2>
+        <p class="section-subtitle">Interactive map of Mapúa University and nearby tricycle &amp; jeepney terminals.</p>
+      </div>
+      <div class="map-container">
+        <div id="map"></div>
+        <div class="map-info">
+          <span><strong>📍</strong> <span id="map-center">Mapúa University, Intramuros</span></span>
+          <span><strong>🛺</strong> <span id="map-trike">Tricycle Terminal</span></span>
+          <span><strong>🚌</strong> <span id="map-jeep">Lawton &amp; Pier 15 Terminals</span></span>
+          <span><strong>💡</strong> Click markers for details</span>
+        </div>
+      </div>
+      <div class="mt-32">
+        <h4 style="font-size:15px;font-weight:700;color:var(--gray-800);margin-bottom:16px">📍 Terminals &amp; Landmarks</h4>
+        <div class="terminals-grid" id="terminals-list"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ROUTE PLANNER -->
+  <section class="section section-alt" id="route-planner">
+    <div class="container">
+      <div class="section-header">
+        <div class="section-label">🗺️ Route Planner</div>
+        <h2>Plan Your <span class="highlight">Sakay</span></h2>
+        <p class="section-subtitle">Choose your destination and transport mode to see the fare. Start your ride and track it on the map!</p>
+      </div>
+      <div class="calculator-wrapper" id="planner-section">
+        <div class="calculator-body">
+          <div class="planner-grid">
+            <div class="planner-form">
+              <div class="planner-field">
+                <label for="planner-start">📍 Start Location</label>
+                <select id="planner-start">
+                  <option value="">— Detecting your location —</option>
+                </select>
+              </div>
+              <div class="planner-field">
+                <label for="planner-end">🏁 Destination</label>
+                <select id="planner-end">
+                  <option value="">— Select destination —</option>
+                </select>
+              </div>
+              <div class="planner-field">
+                <label for="planner-mode">🚌 Transport Mode</label>
+                <select id="planner-mode">
+                  <option value="tricycle">🛺 Tricycle</option>
+                  <option value="jeepney-traditional">🚌 Traditional Jeepney</option>
+                  <option value="jeepney-modern">🚍 Modern Jeepney</option>
+                </select>
+              </div>
+              <div id="gps-status" class="gps-status waiting">⏳ Detecting your location...</div>
+              <button class="btn-start-ride" id="btn-start-ride" disabled>▶ Start Ride</button>
+            </div>
+            <div class="planner-map-wrap">
+              <div class="planner-pin-actions">
+                <button class="btn-pin-sm active" id="planner-pin-start" data-pin="start">📍 Start</button>
+                <button class="btn-pin-sm" id="planner-pin-dest" data-pin="dest">🏁 Dest</button>
+              </div>
+              <div id="planner-map"></div>
+              <div class="planner-map-hint" id="planner-map-hint">📍 Click map to place start, or drag the pin</div>
+            </div>
+          </div>
+          <div class="planner-preview" id="planner-preview">
+            <div class="planner-preview-label">Fare Preview</div>
+            <div class="planner-preview-route" id="planner-route-name">Select start &amp; destination</div>
+            <div class="planner-preview-detail" id="planner-route-detail">—</div>
+            <div class="planner-preview-fare" id="planner-fare">₱—</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- TRAFFIC -->
+  <section class="section section-alt" id="traffic-section">
+    <div class="container">
+      <div class="section-header">
+        <div class="section-label">🚦 Live Traffic</div>
+        <h2>Check Real-Time <span class="highlight">Road Conditions</span></h2>
+        <p class="section-subtitle">Pin your start and destination on the map to see traffic flow and estimated travel time.</p>
+      </div>
+      <div class="traffic-wrapper">
+        <div class="traffic-actions">
+          <button class="btn-pin" id="pin-start" data-pin="start">📍 Pin Start</button>
+          <button class="btn-pin" id="pin-dest" data-pin="dest">🏁 Pin Dest</button>
+          <button class="btn-clear" id="traffic-clear">🗑 Clear All</button>
+        </div>
+        <div class="traffic-info-bar" id="traffic-info">
+          <span class="traffic-info-item" id="tinfo-start">📍 Start: <em>not set</em></span>
+          <span class="traffic-info-sep">→</span>
+          <span class="traffic-info-item" id="tinfo-dest">🏁 Dest: <em>not set</em></span>
+          <span class="traffic-info-sep">·</span>
+          <span class="traffic-info-item" id="tinfo-addr"></span>
+          <span class="traffic-info-sep">·</span>
+          <span class="traffic-info-item" id="tinfo-dist">📏 —</span>
+          <span class="traffic-info-item" id="tinfo-time">⏱ —</span>
+        </div>
+        <div class="traffic-map-container">
+          <div id="traffic-map"></div>
+        </div>
+        <div class="traffic-toggles">
+          <label class="toggle-label">
+            <input type="checkbox" id="toggle-traffic-flow" checked>
+            <span>🚦 Traffic Flow</span>
+          </label>
+          <label class="toggle-label">
+            <input type="checkbox" id="toggle-incidents" checked>
+            <span>⚠️ Incidents</span>
+          </label>
+          <span class="toggle-note">Data © TomTom · Updates every ~2 min</span>
+        </div>
+        <div class="traffic-save" id="traffic-save" style="display:none">
+          <button class="btn-save-route" id="btn-save-route">⭐ Save This Route</button>
+          <span class="traffic-save-hint">Save to ⭐ Saved for quick access</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- LIVE TRACKER -->
+  <section class="section" id="live-tracker" style="display:none">
+    <div class="container">
+      <div class="section-header">
+        <div class="section-label">🔄 Live Ride</div>
+        <h2>Your <span class="highlight">Trip</span> in Progress</h2>
+      </div>
+      <div class="tracker-card" id="tracker-card">
+        <div class="tracker-header">
+          <div class="tracker-title" id="tracker-title">🚀 On the way!</div>
+          <div class="tracker-status live" id="tracker-status">● In Transit</div>
+        </div>
+        <div class="tracker-route-line" id="tracker-route-line">
+          — →
+        </div>
+        <div class="tracker-main">
+          <div class="tracker-vehicle" id="tracker-vehicle">🛺</div>
+          <div class="tracker-stats">
+            <div class="tracker-stat">
+              <div class="tracker-stat-label">Distance</div>
+              <div class="tracker-stat-value distance" id="tracker-dist">0.0 km</div>
+            </div>
+            <div class="tracker-stat">
+              <div class="tracker-stat-label">Time</div>
+              <div class="tracker-stat-value time" id="tracker-time">0:00</div>
+            </div>
+            <div class="tracker-stat">
+              <div class="tracker-stat-label">Fare</div>
+              <div class="tracker-stat-value fare" id="tracker-fare-display">₱0</div>
+            </div>
+            <div class="tracker-stat">
+              <div class="tracker-stat-label">ETA</div>
+              <div class="tracker-stat-value eta" id="tracker-eta">--:--</div>
+            </div>
+          </div>
+        </div>
+        <div class="progress-container">
+          <div class="progress-bar-bg">
+            <div class="progress-bar-fill" id="progress-fill"></div>
+          </div>
+          <div class="progress-labels">
+            <span id="progress-start">📍 Start</span>
+            <span id="progress-end">🏁 Destination</span>
+          </div>
+        </div>
+        <div class="tracker-actions">
+          <button class="btn-finish" id="btn-finish-ride">🏁 Finish Ride</button>
+          <button class="btn-sos-ride" id="btn-sos-ride">🆘 SOS</button>
+          <button class="btn-cancel-ride" id="btn-cancel-ride">✕ Cancel</button>
+        </div>
+      </div>
+      <div class="tracker-map-wrap">
+        <div id="tracker-map"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- RIDE SUMMARY -->
+  <section class="section section-alt" id="ride-summary" style="display:none">
+    <div class="container">
+      <div class="section-header">
+        <div class="section-label">✅ Trip Complete</div>
+        <h2>Ride <span class="highlight">Finished</span></h2>
+      </div>
+      <div class="summary-card" id="summary-card">
+        <div class="summary-icon">🎉</div>
+        <div class="summary-title">Trip Complete!</div>
+        <div class="summary-stats">
+          <div class="summary-stat">
+            <div class="summary-stat-value blue" id="summary-dist">0.0 km</div>
+            <div class="summary-stat-label">Total Distance</div>
+          </div>
+          <div class="summary-stat">
+            <div class="summary-stat-value green" id="summary-time">0:00</div>
+            <div class="summary-stat-label">Travel Time</div>
+          </div>
+          <div class="summary-stat">
+            <div class="summary-stat-value amber" id="summary-fare">₱0</div>
+            <div class="summary-stat-label">Total Fare</div>
+          </div>
+        </div>
+        <div style="font-size:14px;color:var(--gray-500);margin-bottom:24px" id="summary-route">—</div>
+        <button class="btn-new-ride" id="btn-new-ride">🔄 New Ride</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- SAVED -->
+  <section class="section" id="saved-section">
+    <div class="container">
+      <div class="section-header">
+        <div class="section-label">⭐ Saved</div>
+        <h2>Your <span class="highlight">Favorite Routes</span> &amp; Places</h2>
+        <p class="section-subtitle">Saved on this device.</p>
+      </div>
+      <div class="saved-wrapper">
+        <div class="saved-tabs">
+          <button class="saved-tab active" data-tab="places">📍 Places</button>
+          <button class="saved-tab" data-tab="routes">🛤️ Routes</button>
+        </div>
+        <div class="saved-body">
+          <div class="saved-save-panel">
+            <div class="saved-save-actions">
+              <button class="btn-pin btn-pin-sm" id="sv-pin-start" data-pin="start">📍 Pin Start</button>
+              <button class="btn-pin btn-pin-sm" id="sv-pin-dest" data-pin="dest">🏁 Pin Dest</button>
+              <button class="btn-locate btn-locate-sm" id="sv-locate">📍 My Location</button>
+              <button class="btn-clear-sm" id="sv-clear">🗑 Clear</button>
+              <span class="saved-pin-hint" id="sv-hint">Click a pin button, then click the map</span>
+            </div>
+            <div class="saved-map-container">
+              <div id="saved-map"></div>
+            </div>
+            <div class="saved-info-bar" id="sv-info">
+              <span>📍 Start: <em id="sv-start-label">not set</em></span>
+              <span class="traffic-info-sep">→</span>
+              <span>🏁 Dest: <em id="sv-dest-label">not set</em></span>
+            </div>
+            <div class="saved-save-form">
+              <input class="saved-name-input" id="saved-name" placeholder="Name (e.g. Home → School)">
+              <button class="btn-save" id="saved-save-route">⭐ Save Route</button>
+              <button class="btn-save" id="saved-save-start">📌 Save Start</button>
+              <button class="btn-save" id="saved-save-dest">📌 Save Dest</button>
+            </div>
+          </div>
+          <div class="saved-grid" id="saved-places"></div>
+          <div class="saved-grid" id="saved-routes" style="display:none"></div>
+          <div class="saved-empty" id="saved-empty">
+            <span style="font-size:48px">📭</span>
+            <p>No saved items yet. Set a route in Traffic and save it!</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ROADMAP -->
+  <section class="section section-alt" id="roadmap">
+    <div class="container">
+      <div class="section-header">
+        <div class="section-label">🗓️ Roadmap</div>
+        <h2>SakayGuide <span class="highlight">Journey</span></h2>
+        <p class="section-subtitle">From MVP to full-featured commuter companion — here's our planned path.</p>
+      </div>
+      <div class="roadmap-timeline">
+        <div class="roadmap-item">
+          <div class="roadmap-dot">1</div>
+          <div class="roadmap-content">
+            <span class="tag tag-current">✅ v1.0 — Current</span>
+            <h3>MVP: Live Dashboard, Gas Finder, Fare Calc &amp; Route Map</h3>
+            <p>Real-time jeepney &amp; tricycle fares, GasWatchPH fuel prices with nationwide averages, gas station finder with search &amp; brand filter, and interactive Intramuros terminal map.</p>
+            <ul>
+              <li>Live gas prices from GasWatchPH API with nationwide averages</li>
+              <li>Gas Station Finder — search by name/brand/area with brand filter</li>
+              <li>Nearby station auto-detect via GPS + IP geolocation</li>
+              <li>Interactive gas station map with brand-colored markers &amp; popups</li>
+              <li>PH Fuel Price dashboard card with animated counters</li>
+              <li>LTFRB-based jeepney fare (P14 first 4km + P2/km)</li>
+              <li>Manila LGU tricycle fare (P16 first km + P10/km)</li>
+              <li>Interactive Leaflet map with terminal markers</li>
+              <li>Live route drawing: Mapúa → destination by distance</li>
+              <li>Mobile-first white/blue responsive design</li>
+            </ul>
+          </div>
+        </div>
+        <div class="roadmap-item">
+          <div class="roadmap-dot">2</div>
+          <div class="roadmap-content">
+            <span class="tag tag-next">🔜 v1.1 — Route Finder</span>
+            <h3>Route Finder &amp; Fare Matrix Export</h3>
+            <p>Add detailed jeepney/tricycle route listings for Intramuros and nearby barangays with exportable fare tables.</p>
+            <ul>
+              <li class="pending">Route listings with terminal photos &amp; hours</li>
+              <li class="pending">Fare matrix PDF / image export</li>
+              <li class="pending">Search by origin &amp; destination</li>
+              <li class="pending">More Intramuros routes &amp; landmarks</li>
+            </ul>
+          </div>
+        </div>
+        <div class="roadmap-item">
+          <div class="roadmap-dot">3</div>
+          <div class="roadmap-content">
+            <span class="tag tag-next">🔜 v1.2 — Smart Features</span>
+            <h3>Fuel History, Fare Comparison</h3>
+            <p>Historical fuel price charts, mode comparison</p>
+            <ul>
+              <li class="pending">Fuel price history chart (4-week trend)</li>
+              <li class="pending">Jeepney vs tricycle vs Grab comparison</li>
+            </ul>
+          </div>
+        </div>
+        <div class="roadmap-item">
+          <div class="roadmap-dot">4</div>
+          <div class="roadmap-content">
+            <span class="tag tag-future">📅 v1.3 — Crowdsourced</span>
+            <h3>Community Reports &amp; Alerts</h3>
+            <p>User-submitted fare reports, price gouging alerts, and community route corrections.</p>
+            <ul>
+              <li class="pending">Photo upload of fare matrices</li>
+              <li class="pending">Upvote/downvote fare accuracy</li>
+              <li class="pending">Report overcharging button</li>
+              <li class="pending">Community route edits</li>
+            </ul>
+          </div>
+        </div>
+        <div class="roadmap-item">
+          <div class="roadmap-dot future">5</div>
+          <div class="roadmap-content">
+            <span class="tag tag-future">📅 v1.4+</span>
+            <h3>Expansion &amp; Mobile App</h3>
+            <p>Add 5+ municipalities, multi-language support, push notifications, and native mobile apps.</p>
+            <ul>
+              <li class="pending">5+ Metro Manila municipalities</li>
+              <li class="pending">Filipino &amp; English language support</li>
+              <li class="pending">Push notifications for fare changes</li>
+              <li class="pending">React Native / Flutter mobile app</li>
+              <li class="pending">Real-time GPS tricycle tracking</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- FOOTER -->
+  <footer class="footer">
+    <div class="container">
+      <div class="footer-grid">
+        <div class="footer-brand">
+          <span class="logo-text">🚌 SakayGuide</span>
+          <p>Real-time transport fares, terminal locations, and fuel prices for Philippine commuters. Built with ❤️ for daily sakay.</p>
+          <div class="disclaimer mt-16">
+            <strong>Disclaimer:</strong> Jeepney fares based on <a href="https://www.topgear.com.ph/news/motoring-news/ltfrb-approves-fare-adjustments-puvs-a2578-20260317" target="_blank" style="color:var(--gray-400);text-decoration:underline">LTFRB Order March 2026</a> (P14 first 4km + P2/km trad, P17 + P2.30/km modern). Tricycle fares per <a href="https://mb.com.ph/2023/11/6/manila-lgu-releases-new-fare-matrix-for-tri-wheels" target="_blank" style="color:var(--gray-400);text-decoration:underline">Manila LGU Ord. No. 8979</a> (P16 first km + P5/500m). Gas prices from <a href="https://gaswatchph.com" target="_blank" style="color:var(--gray-400);text-decoration:underline">GasWatchPH</a> (community-reported + official data). Non-official reference tool. Actual fares may vary. Always verify with driver before boarding.
+          </div>
+        </div>
+        <div>
+          <h4>Quick Links</h4>
+          <ul>
+            <li><a href="#dashboard">Live Fares</a></li>
+            <li><a href="#gas-section">Gas Stations</a></li>
+            <li><a href="#calculator">Fare Calculator</a></li>
+            <li><a href="#map-section">Terminal Map</a></li>
+            <li><a href="#roadmap">Roadmap</a></li>
+          </ul>
+        </div>
+        <div>
+          <h4>Data Sources</h4>
+          <ul>
+            <li><a href="https://www.topgear.com.ph/news/motoring-news/ltfrb-approves-fare-adjustments-puvs-a2578-20260317" target="_blank" rel="noopener">LTFRB Jeepney Fare (TopGear)</a></li>
+            <li><a href="https://mb.com.ph/2023/11/6/manila-lgu-releases-new-fare-matrix-for-tri-wheels" target="_blank" rel="noopener">Manila Tricycle Fare (MB)</a></li>
+            <li><a href="https://gaswatchph.com" target="_blank" rel="noopener">GasWatchPH (Gas Prices)</a></li>
+            <li><a href="https://tomtom.com" target="_blank" rel="noopener">TomTom Traffic &amp; Routing</a></li>
+            <li><a href="https://www.openstreetmap.org" target="_blank" rel="noopener">OpenStreetMap</a></li>
+          </ul>
+        </div>
+      </div>
+      <div class="footer-bottom">
+        <span>&copy; 2026 SakayGuide. All data for reference purposes only.</span>
+        <span>Not affiliated with LTFRB, DOE, or any government agency.</span>
+      </div>
+    </div>
+  </footer>
+
+  <div class="modal-overlay" id="modal-overlay">
+    <div class="modal">
+      <div class="modal-header">
+        <h2 id="modal-title">Advisories</h2>
+        <button class="modal-close" id="modal-close">&times;</button>
+      </div>
+      <div class="modal-body" id="modal-body"></div>
+    </div>
+  </div>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+  <script src="data.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

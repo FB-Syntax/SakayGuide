@@ -1,0 +1,7 @@
+node_modules/
+.env
+npm-debug.log*
+
+# Cache contents are generated at runtime; keep the directory itself in the repository.
+cache/*
+!cache/.gitignore
